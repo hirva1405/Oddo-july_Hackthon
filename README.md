@@ -2,8 +2,7 @@
 
 > A centralized platform that digitizes the complete lifecycle of transport operations — vehicle registration, driver management, trip dispatching, maintenance, fuel & expense tracking, and operational analytics — with hard-enforced business rules and role-based access control.
 
-**🔗 Live Demo:** _[Vercel URL — coming soon]_
-**🎥 Demo Video:** _[link — coming soon]_
+**🎥 Demo Video:** : https://drive.google.com/file/d/1HZvS9dxU14K4RK4A39DBX1yqWBxNwc8T/view?usp=drive_link
 
 ---
 
