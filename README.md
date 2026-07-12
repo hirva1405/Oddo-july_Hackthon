@@ -1,91 +1,49 @@
 # 🚛 TransitOps — Smart Transport Operations Platform
 
-> A centralized platform that digitizes the complete lifecycle of transport operations — vehicle registration, driver management, trip dispatching, maintenance, fuel & expense tracking, and operational analytics — with hard-enforced business rules and role-based access control.
+> A centralized fleet command center that digitizes vehicle, driver, dispatch, maintenance, and expense management — with hard-enforced business rules, RBAC, and a cinematic dark UI in black, navy, beige & gold.
 
-**🔗 Live Demo:** _[Vercel URL — coming soon]_
-**🎥 Demo Video:** _[link — coming soon]_
-
----
-
-## 📋 Problem Statement
-
-Many logistics companies still rely on spreadsheets and manual logbooks to manage transport operations, leading to scheduling conflicts, underutilized vehicles, missed maintenance, expired driver licenses, inaccurate expense tracking, and poor operational visibility.
-
-**TransitOps** solves this with a single source of truth: every vehicle, driver, trip, maintenance job, and expense lives in one system, with automatic status transitions and validations that make invalid operations impossible.
+**🎥 Demo Video:** _[link — add before submission]_
 
 ---
 
-## ✨ Key Features
+## 🚀 Run it (3 commands)
 
-### 🔐 Authentication & RBAC
-- Secure email/password login with session management
-- Role-Based Access Control — **Fleet Manager**, **Driver**, **Safety Officer**, **Financial Analyst**
-- Role-aware navigation and server-side permission enforcement
+```bash
+npm install
+npm run seed
+npm run dev        # → http://localhost:3000
+```
 
-### 📊 Dashboard
-- Live KPIs: Active Vehicles, Available Vehicles, Vehicles in Maintenance, Active Trips, Pending Trips, Drivers On Duty, Fleet Utilization (%)
-- Filters by vehicle type, status, and region
-- Visual analytics powered by interactive charts
+### 🔑 Demo logins (password: `demo1234`)
 
-### 🚚 Vehicle Registry
-- Complete vehicle master data: unique registration number, model, type, max load capacity, odometer, acquisition cost
-- Lifecycle statuses: `Available` · `On Trip` · `In Shop` · `Retired`
-- Per-vehicle trip history, operational cost breakdown, and document vault
+| Role | Email |
+|------|-------|
+| Admin | admin@transitops.com |
+| Fleet Manager | manager@transitops.com |
+| Driver | driver@transitops.com |
+| Safety Officer | safety@transitops.com |
+| Financial Analyst | finance@transitops.com |
 
-### 👤 Driver Management
-- Driver profiles with license number, category, expiry date, contact, and safety score
-- Statuses: `Available` · `On Trip` · `Off Duty` · `Suspended`
-- Automatic license-expiry detection — expired drivers are blocked from dispatch
-
-### 🗺️ Trip Management
-- Full trip lifecycle: `Draft → Dispatched → Completed / Cancelled`
-- Smart selection pools — only eligible vehicles and drivers appear
-- Live validation: cargo weight vs. vehicle capacity, license validity, availability
-
-### 🔧 Maintenance Workflow
-- Opening a maintenance log automatically moves the vehicle to `In Shop` and removes it from the dispatch pool
-- Closing maintenance restores the vehicle to `Available`
-
-### ⛽ Fuel & Expense Tracking
-- Fuel logs (liters, cost, date) and general expenses (tolls, repairs…)
-- Auto-computed total operational cost (Fuel + Maintenance) per vehicle
-
-### 📈 Reports & Analytics
-- Fuel Efficiency (Distance / Fuel), Fleet Utilization, Operational Cost per vehicle
-- Vehicle ROI = (Revenue − (Maintenance + Fuel)) / Acquisition Cost
-- One-click **CSV and PDF export**
+New signups start as **Driver**; the Admin promotes roles from the **Users** page (realistic, non-self-elevating account creation).
 
 ---
 
-## 🌟 Bonus Features — All 6 Implemented
-
-| Bonus Feature | How |
-|---------------|-----|
-| 📊 Charts & visual analytics | Interactive Recharts across dashboard & reports |
-| 🌙 Dark mode | Full theme system with one-click toggle |
-| 🔎 Search, filters & sorting | On every data table (vehicles, drivers, trips…) |
-| 📄 PDF export | Report tables exportable as styled PDF |
-| 📧 License expiry reminders | In-app notification center + email reminders for licenses expiring within 30 days |
-| 📁 Vehicle document management | Upload & manage RC book, insurance, permits per vehicle with expiry tracking |
-
----
-
-## 🛡️ Enforced Business Rules
+## 🛡️ All 10 Mandatory Business Rules — enforced & tested
 
 | # | Rule | Enforcement |
 |---|------|-------------|
-| 1 | Vehicle registration number must be unique | DB constraint + validation |
-| 2 | Retired / In-Shop vehicles never appear in dispatch selection | Filtered eligibility query |
-| 3 | Expired-license or Suspended drivers cannot be assigned | Server-side validation |
-| 4 | A vehicle/driver already On Trip cannot be double-assigned | Atomic transaction check |
-| 5 | Cargo weight must not exceed vehicle max capacity | Zod schema + server check |
-| 6 | Dispatch ⇒ vehicle & driver → `On Trip` | Automatic transition |
-| 7 | Complete ⇒ vehicle & driver → `Available` | Automatic transition |
-| 8 | Cancel (dispatched) ⇒ vehicle & driver restored | Automatic transition |
-| 9 | Active maintenance ⇒ vehicle → `In Shop` | Automatic transition |
-| 10 | Maintenance closed ⇒ vehicle → `Available` (unless Retired) | Automatic transition |
+| 1 | Unique vehicle registration number | SQL `UNIQUE` constraint + friendly error |
+| 2 | Retired / In-Shop vehicles never in dispatch selection | Filtered eligibility query |
+| 3 | Expired-license / Suspended drivers can't be assigned | Server-side validation + filtered pool |
+| 4 | No double-assignment of On-Trip vehicle/driver | Transactional status check |
+| 5 | Cargo weight ≤ vehicle max capacity | Validated at create **and** dispatch |
+| 6 | Dispatch ⇒ vehicle & driver → On Trip | Atomic SQL transaction |
+| 7 | Complete ⇒ both → Available (+ odometer & fuel log) | Atomic SQL transaction |
+| 8 | Cancel dispatched ⇒ both restored | Atomic SQL transaction |
+| 9 | Open maintenance ⇒ vehicle → In Shop, hidden from dispatch | Atomic SQL transaction |
+| 10 | Close maintenance ⇒ vehicle → Available (unless Retired) | Atomic SQL transaction |
 
-All status transitions are executed as **atomic database transactions** in a dedicated service layer — statuses can never desync.
+**Proof:** `node scripts/test-rules.mjs` runs a 16-test suite against the live database — including an atomicity test that sabotages a dispatch mid-flow and verifies nothing is left half-flipped. **16/16 passing.**
 
 ---
 
@@ -93,77 +51,59 @@ All status transitions are executed as **atomic database transactions** in a ded
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 14 (App Router) + TypeScript |
-| Database | SQL — PostgreSQL (simple relational schema, hosted free on Neon) |
-| ORM | Prisma (type-safe queries over plain SQL tables) |
-| Authentication | NextAuth.js (credentials + RBAC) |
-| Validation | Zod + React Hook Form |
-| Styling | Tailwind CSS |
-| UI Components | shadcn/ui + Lucide Icons |
-| Charts | Recharts |
-| Animations | Framer Motion |
-| File Uploads | UploadThing |
-| Email | Resend |
-| Exports | papaparse (CSV) + jsPDF (PDF) |
-| Deployment | Vercel |
+| Framework | Next.js 14 (App Router) + React 18, JavaScript |
+| Database | **SQLite via better-sqlite3 — hand-written SQL schema & queries** |
+| Transactions | Native SQL transactions (`db.transaction`) for every status flip |
+| Auth | JWT sessions (jose) in httpOnly cookies + bcrypt hashing |
+| RBAC | 5 roles enforced in middleware + every server action |
+| Styling | Tailwind CSS + custom design system (glassmorphism, gold/navy/beige) |
+| Animations | CSS keyframes + IntersectionObserver reveals, 3D tilt cards, count-ups |
+| Exports | CSV via streaming route handler |
+
+No ORM, no external services, no env vars needed — clone, install, run.
+
+---
+
+## ✨ Features
+
+- **Auth & RBAC** — login/register/logout, protected routes, role-aware navigation, admin role promotion
+- **Dashboard** — 7 live KPIs (animated count-up 3D tilt cards), weekly cost chart, live fleet board, scrolling activity ticker
+- **Vehicle Registry** — search/filter by name/reg/status/type, register, retire, unique-reg enforcement
+- **Driver Management** — license expiry warnings (🚫 expired / ⚠️ <30 days), safety scores, status control
+- **Trip Management** — full lifecycle with filtered eligible pools, live rule validation with toast errors, revenue capture at completion
+- **Maintenance** — open → In Shop (auto-hidden from dispatch), close → restored
+- **Fuel & Expenses** — logs + auto-computed operational cost per vehicle
+- **Reports** — fuel efficiency (km/L), fleet utilization, operational cost chart, **ROI = (Revenue − (Maintenance+Fuel)) / Acquisition Cost**, CSV export
+- **License notifications** — 🔔 bell with expiring-license alerts
+- **Signature UX** — animated truck road-loader on every page load, ornamental living background, dark theme by design
+
+## 🌟 Bonus features implemented
+✅ Charts & visual analytics · ✅ Dark mode (native) · ✅ Search, filters & sorting · ✅ In-app license expiry reminders · ✅ **PDF export** (styled fleet report) · ✅ **Vehicle document management** (RC/insurance/permit upload with expiry tracking)
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-src/
-├── app/
-│   ├── (auth)/            # login, register
-│   └── (dashboard)/       # protected: dashboard, vehicles, drivers,
-│                          #   trips, maintenance, expenses, reports
-├── lib/
-│   ├── services/          # ⭐ ALL business rules & atomic status
-│   │                      #   transitions live here
-│   ├── validators/        # shared Zod schemas (client + server)
-│   ├── auth.ts / rbac.ts  # session + role enforcement
-│   └── db.ts              # Prisma client
-├── components/            # layout, dashboard, module UIs, shared
-└── middleware.ts          # route protection
-prisma/
-├── schema.prisma          # full data model (incl. documents & notifications)
-└── seed.ts                # realistic demo data
+app/
+├── login/ · register/        # auth screens
+├── (dash)/                   # protected shell: sidebar, topbar, truck loader
+│   ├── page.js               # dashboard
+│   ├── vehicles/ drivers/ trips/ maintenance/ expenses/ reports/ users/
+├── api/reports/csv/          # CSV export
+lib/
+├── db.js                     # SQLite + full SQL schema (auto-creates)
+├── services.js               # ⭐ ALL business rules, atomic transactions
+├── analytics.js              # KPIs, reports math, license alerts
+├── auth.js · roles.js        # sessions + RBAC
+└── actions/                  # server actions (auth, fleet)
+scripts/
+├── seed.js · schema.sql      # rich demo data
+└── test-rules.mjs            # 16-test business-rule suite
+middleware.js                 # route protection
 ```
 
-**Design principle:** UI never mutates state directly — every status change goes through a service function that validates and updates all affected entities in a single transaction.
-
----
-
-## 🚀 Getting Started
-
-```bash
-# 1. Clone
-git clone <repo-url> && cd transitops
-
-# 2. Install
-npm install
-
-# 3. Environment — create .env with:
-#    DATABASE_URL="postgresql://..."
-#    NEXTAUTH_SECRET="<any random string>"
-#    NEXTAUTH_URL="http://localhost:3000"
-
-# 4. Database
-npx prisma db push
-npx prisma db seed
-
-# 5. Run
-npm run dev
-```
-
-### 🔑 Demo Credentials
-
-| Role | Email | Password |
-|------|-------|----------|
-| Fleet Manager | manager@transitops.com | demo1234 |
-| Driver | driver@transitops.com | demo1234 |
-| Safety Officer | safety@transitops.com | demo1234 |
-| Financial Analyst | finance@transitops.com | demo1234 |
+**Design principle:** UI never mutates state directly — every status change goes through `lib/services.js`, which validates and updates all affected rows in a single SQL transaction.
 
 ---
 
@@ -173,15 +113,7 @@ npm run dev
 |--------|------|
 | **Hirva** | Team Lead — Architecture, Data Model, Integration, Design Direction, Demo |
 | **Oggy** | Backend — Business Rules Engine, Trip & Maintenance Services |
-| **Darshan** | Backend — Authentication, RBAC, CRUD Services, Seed Data, Notifications |
-| **KD** | Frontend — Dashboard, Layout System, Module Pages, Data Tables, Exports |
-
----
-
-## 📸 Screenshots
-
-_[Coming soon — dashboard, trip dispatch flow, reports]_
-
----
+| **Darshan** | Backend — Authentication, RBAC, Seed Data, Notifications |
+| **KD** | Frontend — Dashboard, Module Pages, Tables, Reports |
 
 _Built in 8 hours for the ODD Hackathon 2026 🏁_
