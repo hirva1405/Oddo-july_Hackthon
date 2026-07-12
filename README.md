@@ -184,4 +184,4 @@ _[Coming soon — dashboard, trip dispatch flow, reports]_
 
 ---
 
-_Built in 8 hours for the ODD Hackathon 2026 🏁_
+_Built in 8 hours for the ODDO Hackathon 2026 🏁_
