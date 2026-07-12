@@ -2,7 +2,7 @@
 
 > A centralized fleet command center that digitizes vehicle, driver, dispatch, maintenance, and expense management — with hard-enforced business rules, RBAC, and a cinematic dark UI in black, navy, beige & gold.
 
-**🎥 Demo Video:** _[link — add before submission]_
+**🎥 Demo Video:** : https://drive.google.com/file/d/1HZvS9dxU14K4RK4A39DBX1yqWBxNwc8T/view?usp=drive_link
 
 ---
 
