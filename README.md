@@ -1,161 +1,187 @@
-# TransitOps — Vehicle Registry Backend
+# 🚛 TransitOps — Smart Transport Operations Platform
 
-A standalone CRUD module for **TransitOps: Smart Transport Operations Platform**,
-covering spec section 3.3 (Vehicle Registry) and the related business rules from
-section 4.
+> A centralized platform that digitizes the complete lifecycle of transport operations — vehicle registration, driver management, trip dispatching, maintenance, fuel & expense tracking, and operational analytics — with hard-enforced business rules and role-based access control.
 
-- Master list of vehicles: Registration Number (unique), Vehicle Name/Model, Type,
-  Maximum Load Capacity, Odometer, Acquisition Cost, Status, and Region (for the
-  dashboard filters in spec 3.2)
-- Status values: `Available`, `On Trip`, `In Shop`, `Retired`
-- Enforces: registration number uniqueness, and that Retired/In Shop vehicles
-  never show up in the dispatch selection pool
-- Filtering, free-text search, sorting, and pagination on the list endpoint
-- Request validation and centralized error handling
+**🔗 Live Demo:** _[Vercel URL — coming soon]_
+**🎥 Demo Video:** _[link — coming soon]_
 
-This module is scoped to **only** the Vehicle Registry — no auth, trips,
-maintenance, or expenses. It ships standalone (no dependency on the auth
-backend) so it can be run and tested on its own; see "Wiring In Auth" below for
-how to plug it behind the login system later.
+---
 
-## Tech Stack
+## 📋 Problem Statement
 
-- Node.js + Express
-- JSON file storage via `lowdb` (zero setup — swap `models/Vehicle.js` for
-  Postgres/Mongo later without touching controllers or routes)
-- `express-validator` for input validation
+Many logistics companies still rely on spreadsheets and manual logbooks to manage transport operations, leading to scheduling conflicts, underutilized vehicles, missed maintenance, expired driver licenses, inaccurate expense tracking, and poor operational visibility.
 
-## Project Structure
+**TransitOps** solves this with a single source of truth: every vehicle, driver, trip, maintenance job, and expense lives in one system, with automatic status transitions and validations that make invalid operations impossible.
+
+---
+
+## ✨ Key Features
+
+### 🔐 Authentication & RBAC
+- Secure email/password login with session management
+- Role-Based Access Control — **Fleet Manager**, **Driver**, **Safety Officer**, **Financial Analyst**
+- Role-aware navigation and server-side permission enforcement
+
+### 📊 Dashboard
+- Live KPIs: Active Vehicles, Available Vehicles, Vehicles in Maintenance, Active Trips, Pending Trips, Drivers On Duty, Fleet Utilization (%)
+- Filters by vehicle type, status, and region
+- Visual analytics powered by interactive charts
+
+### 🚚 Vehicle Registry
+- Complete vehicle master data: unique registration number, model, type, max load capacity, odometer, acquisition cost
+- Lifecycle statuses: `Available` · `On Trip` · `In Shop` · `Retired`
+- Per-vehicle trip history, operational cost breakdown, and document vault
+
+### 👤 Driver Management
+- Driver profiles with license number, category, expiry date, contact, and safety score
+- Statuses: `Available` · `On Trip` · `Off Duty` · `Suspended`
+- Automatic license-expiry detection — expired drivers are blocked from dispatch
+
+### 🗺️ Trip Management
+- Full trip lifecycle: `Draft → Dispatched → Completed / Cancelled`
+- Smart selection pools — only eligible vehicles and drivers appear
+- Live validation: cargo weight vs. vehicle capacity, license validity, availability
+
+### 🔧 Maintenance Workflow
+- Opening a maintenance log automatically moves the vehicle to `In Shop` and removes it from the dispatch pool
+- Closing maintenance restores the vehicle to `Available`
+
+### ⛽ Fuel & Expense Tracking
+- Fuel logs (liters, cost, date) and general expenses (tolls, repairs…)
+- Auto-computed total operational cost (Fuel + Maintenance) per vehicle
+
+### 📈 Reports & Analytics
+- Fuel Efficiency (Distance / Fuel), Fleet Utilization, Operational Cost per vehicle
+- Vehicle ROI = (Revenue − (Maintenance + Fuel)) / Acquisition Cost
+- One-click **CSV and PDF export**
+
+---
+
+## 🌟 Bonus Features — All 6 Implemented
+
+| Bonus Feature | How |
+|---------------|-----|
+| 📊 Charts & visual analytics | Interactive Recharts across dashboard & reports |
+| 🌙 Dark mode | Full theme system with one-click toggle |
+| 🔎 Search, filters & sorting | On every data table (vehicles, drivers, trips…) |
+| 📄 PDF export | Report tables exportable as styled PDF |
+| 📧 License expiry reminders | In-app notification center + email reminders for licenses expiring within 30 days |
+| 📁 Vehicle document management | Upload & manage RC book, insurance, permits per vehicle with expiry tracking |
+
+---
+
+## 🛡️ Enforced Business Rules
+
+| # | Rule | Enforcement |
+|---|------|-------------|
+| 1 | Vehicle registration number must be unique | DB constraint + validation |
+| 2 | Retired / In-Shop vehicles never appear in dispatch selection | Filtered eligibility query |
+| 3 | Expired-license or Suspended drivers cannot be assigned | Server-side validation |
+| 4 | A vehicle/driver already On Trip cannot be double-assigned | Atomic transaction check |
+| 5 | Cargo weight must not exceed vehicle max capacity | Zod schema + server check |
+| 6 | Dispatch ⇒ vehicle & driver → `On Trip` | Automatic transition |
+| 7 | Complete ⇒ vehicle & driver → `Available` | Automatic transition |
+| 8 | Cancel (dispatched) ⇒ vehicle & driver restored | Automatic transition |
+| 9 | Active maintenance ⇒ vehicle → `In Shop` | Automatic transition |
+| 10 | Maintenance closed ⇒ vehicle → `Available` (unless Retired) | Automatic transition |
+
+All status transitions are executed as **atomic database transactions** in a dedicated service layer — statuses can never desync.
+
+---
+
+## 🧰 Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 14 (App Router) + TypeScript |
+| Database | SQL — PostgreSQL (simple relational schema, hosted free on Neon) |
+| ORM | Prisma (type-safe queries over plain SQL tables) |
+| Authentication | NextAuth.js (credentials + RBAC) |
+| Validation | Zod + React Hook Form |
+| Styling | Tailwind CSS |
+| UI Components | shadcn/ui + Lucide Icons |
+| Charts | Recharts |
+| Animations | Framer Motion |
+| File Uploads | UploadThing |
+| Email | Resend |
+| Exports | papaparse (CSV) + jsPDF (PDF) |
+| Deployment | Vercel |
+
+---
+
+## 🏗️ Architecture
 
 ```
-transitops-vehicle-registry/
-├── config/
-│   └── db.js                  # lowdb (JSON file) database setup
-├── controllers/
-│   └── vehicleController.js   # CRUD + dispatch-pool + status transition logic
-├── middleware/
-│   └── validators.js          # express-validator rules
-├── models/
-│   └── Vehicle.js             # data access + status enum + business rules
-├── routes/
-│   └── vehicleRoutes.js       # /api/vehicles/*
-├── scripts/
-│   └── seed.js                # sample vehicles across every status
-├── data/
-│   └── db.json                # auto-created on first run (git-ignored)
-├── .env.example
-├── package.json
-└── server.js
+src/
+├── app/
+│   ├── (auth)/            # login, register
+│   └── (dashboard)/       # protected: dashboard, vehicles, drivers,
+│                          #   trips, maintenance, expenses, reports
+├── lib/
+│   ├── services/          # ⭐ ALL business rules & atomic status
+│   │                      #   transitions live here
+│   ├── validators/        # shared Zod schemas (client + server)
+│   ├── auth.ts / rbac.ts  # session + role enforcement
+│   └── db.ts              # Prisma client
+├── components/            # layout, dashboard, module UIs, shared
+└── middleware.ts          # route protection
+prisma/
+├── schema.prisma          # full data model (incl. documents & notifications)
+└── seed.ts                # realistic demo data
 ```
 
-## Getting Started
+**Design principle:** UI never mutates state directly — every status change goes through a service function that validates and updates all affected entities in a single transaction.
+
+---
+
+## 🚀 Getting Started
 
 ```bash
-# 1. Install dependencies
+# 1. Clone
+git clone <repo-url> && cd transitops
+
+# 2. Install
 npm install
 
-# 2. Configure environment variables
-cp .env.example .env
+# 3. Environment — create .env with:
+#    DATABASE_URL="postgresql://..."
+#    NEXTAUTH_SECRET="<any random string>"
+#    NEXTAUTH_URL="http://localhost:3000"
 
-# 3. (Optional) Seed sample vehicles
-npm run seed
+# 4. Database
+npx prisma db push
+npx prisma db seed
 
-# 4. Start the server
-npm start
-# or, for auto-reload during development:
+# 5. Run
 npm run dev
 ```
 
-Server starts on `http://localhost:5001` by default (`PORT` in `.env`). A
-different default port than the auth service (5000) was chosen so both can
-run side by side during development.
+### 🔑 Demo Credentials
 
-## API Reference
+| Role | Email | Password |
+|------|-------|----------|
+| Fleet Manager | manager@transitops.com | demo1234 |
+| Driver | driver@transitops.com | demo1234 |
+| Safety Officer | safety@transitops.com | demo1234 |
+| Financial Analyst | finance@transitops.com | demo1234 |
 
-### `GET /health`
-Health check.
+---
 
-### `POST /api/vehicles`
-Register a new vehicle.
-```json
-{
-  "registrationNumber": "VAN-05",
-  "name": "Ford Transit",
-  "type": "Van",
-  "maxLoadCapacity": 500,
-  "odometer": 0,
-  "acquisitionCost": 32000,
-  "status": "Available",
-  "region": "North"
-}
-```
-`status` and `odometer` are optional (default to `Available` and `0`).
-Returns **409** if `registrationNumber` already exists.
+## 👥 Team
 
-### `GET /api/vehicles`
-List vehicles with optional query params:
+| Member          | Role |
+|-----------------|------|
+| **Hirva**       | Team Lead — Architecture, Data Model, Integration, Design Direction, Demo |
+| **Ogesh**       | Backend — Business Rules Engine, Trip & Maintenance Services |
+| **Darshan**     | Backend — Authentication, RBAC, CRUD Services, Seed Data, Notifications |
+| **Karmdipsinh** | Frontend — Dashboard, Layout System, Module Pages, Data Tables, Exports |
 
-| Param     | Description                                            |
-|-----------|----------------------------------------------------------|
-| `status`  | Filter by exact status (`Available`, `On Trip`, `In Shop`, `Retired`) |
-| `type`    | Filter by vehicle type (case-insensitive)               |
-| `region`  | Filter by region (case-insensitive)                     |
-| `search`  | Free-text match on registration number, name, or type   |
-| `sortBy`  | `registrationNumber` \| `name` \| `type` \| `odometer` \| `acquisitionCost` \| `createdAt` |
-| `order`   | `asc` (default) or `desc`                                |
-| `page`    | Page number, default `1`                                 |
-| `limit`   | Page size, default `20`, max `100`                        |
+---
 
-Example: `GET /api/vehicles?status=Available&type=Van&sortBy=odometer&order=desc`
+## 📸 Screenshots
 
-### `GET /api/vehicles/available`
-Returns only vehicles eligible for dispatch (status `Available`) — the
-endpoint the Trip Management module should call when populating its vehicle
-picker. Enforces spec rule: *"Retired or In Shop vehicles must never appear
-in the dispatch selection."*
+_[Coming soon — dashboard, trip dispatch flow, reports]_
 
-### `GET /api/vehicles/:id`
-Fetch a single vehicle.
+---
 
-### `PUT /api/vehicles/:id`
-Update any subset of vehicle fields. Re-validates registration number
-uniqueness if it's being changed.
-
-### `PATCH /api/vehicles/:id/status`
-Dedicated status-transition endpoint (the Trip and Maintenance modules should
-call this to flip a vehicle to `On Trip` / `In Shop` / `Available`, per spec
-section 4's automatic status transitions).
-```json
-{ "status": "In Shop" }
-```
-Rejects the change with **400** if the vehicle is currently `Retired`
-(a retired vehicle cannot be un-retired through this endpoint).
-
-### `DELETE /api/vehicles/:id`
-Hard-deletes a vehicle record. Prefer setting status to `Retired` via the
-status endpoint instead, to preserve history for reports — this is provided
-mainly for cleaning up test/duplicate entries.
-
-## Wiring In Auth
-
-This module has no authentication of its own. To protect it with the
-TransitOps auth backend's RBAC (Fleet Manager should own this data), import
-its middleware into `routes/vehicleRoutes.js`:
-
-```js
-const authenticate = require('../../transitops-auth-backend/middleware/auth');
-const authorize = require('../../transitops-auth-backend/middleware/rbac');
-const { ROLES } = require('../../transitops-auth-backend/models/User');
-
-router.post(
-  '/',
-  authenticate,
-  authorize(ROLES.FLEET_MANAGER, ROLES.ADMIN),
-  createVehicleRules,
-  vehicleController.createVehicle
-);
-```
-
-Or, more simply once both services are merged into one Express app, mount
-`vehicleRoutes` under `/api/vehicles` in the auth backend's `server.js` and
-apply `authenticate`/`authorize` there.
+_Built in 8 hours for the ODDO Hackathon 2026 🏁_
